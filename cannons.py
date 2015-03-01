@@ -4,7 +4,7 @@
 #The GNU General Public License is a free, copyleft license for
 #software and other kinds of works. See licence for more information
 
-#Anycase you can use github to contact Me, the author, Pandaro or write to padarogames@gmail.common
+#Anycase you can use github to contact Me, the author, Pandaro or write to padarogames@gmail.com
 
 #caution can eat your hamster!
 
