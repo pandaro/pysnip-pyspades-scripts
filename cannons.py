@@ -4,7 +4,7 @@
 #The GNU General Public License is a free, copyleft license for
 #software and other kinds of works. See licence for more information
 
-#Anycase you can use github to contact Me, the author, Pandaro or write to padarogames@gmail.com
+#Anycase you can use github to contact Me, the author, Pandaro or write to padarogames@gmail.common
 
 #caution can eat your hamster!
 
@@ -13,11 +13,9 @@ from pyspades.constants import UPDATE_FREQUENCY
 from pyspades import world
 from twisted.internet import reactor
 from pyspades.common import Vertex3
-import math
 from random import randint, uniform
 from math import pow, sqrt
 from pyspades.constants import TC_MODE
-
 _play=[]
 class _players:#class of players to manage it
 	def __init__(self,_name,_status,_ammo,_cannon,_timer,_bullets):
@@ -28,7 +26,7 @@ class _players:#class of players to manage it
 		self._timer=False
 		self._bullets=1
 	def stampa(self):
-		print("player: ",self._name,self._status,self._ammo,self._cannon,self._bullets)
+		print("player: ",self._name,self._status,self._ammo,self._cannon,self._bullets[0])
 		
 _bullets_=[]
 class _bullets:#class of bullets
@@ -44,18 +42,18 @@ class _bullets:#class of bullets
 		print("_bullets",self._name,self._number,self._speed,_refill,_eta,_kinetic)
 		
 _cannons = []
-_artillery_positions=_a_p=0#if>=1 control point are in random position and in give number,0=fixes(declare in _cannon_location) 
+_artillery_positions=_a_p=8#if>=1 control point are in random position and in give number,0=fixes(declare in _cannon_location) 
 _cannons_locations=((10,10,20),(25,26,20),(30,30,20),(462,463,20),(500,500,20),(510,510,20))#list of artillery locations 
 
 #artillery golbal settings
 _ammo_mode=1#0=infinite ammo, 1=player ammo, 2=artillery ammo
-_bullets_types=[0] #available types of bullets: 0 = cannonball,2 = buster,1 = cluster, 3 = missile
+_bullets_types=[0,1,2,3] #available types of bullets: 0 = cannonball,2 = buster,1 = cluster, 3 = missile
 _persistent_players_ammo=_p_p_a=False #if True, if a plyer die, his ammunition are not 
 _player_ammo=_p_a=25#number of bullets available for each player if _ammo_mode=1
 _cannon_ammo=_c_a=100#number of bullets available for each artillery battery if _ammo_mode=2
 _cannons_step=_c_s=0.25 #speed of cannons, set 0 to not mobile artillery
 _artillery_step_height=_h_s_h=1.5#how much block can get over
-
+_distance_enabled=_d_e=10
 
 #cannonball settings
 CANNONBALL_NUMBER=C_N=1 #number of shooted bullets for this type i suggest only 1
@@ -239,30 +237,39 @@ def apply_script(protocol,connection,config):
 		def on_animation_update(self, jump, crouch, sneak, sprint): #on jump enter in a artillery battery if captured
 			#print("on animation update")
 			player=_play[self.player_id]
-			if jump==True:
-				if player._status!=False:
-					player._status=False
-					player._cannon=False					
-					player._timer=False
-					for i in _cannons:
-						if i.status==self.player_id:
-							i.status=False
-							self.protocol.update_entities()					
-				else:
-					p=self.get_location()	
-					for i in _cannons:
-						if i.status!=0:
-							return connection.on_animation_update(self, jump, crouch, sneak, sprint)
-						dist=sqrt((pow((i.x)-p[0],2))+(pow((i.y)-p[1],2))+(pow((i.z)-p[2],2)))
-						if dist<10 and i.team==self.team:	
-							player._status=(i.id)
-							player._cannon=(i)
-							#_players.stampa(player)
-							i.status=self.player_id
-							self.protocol.update_entities()
-							self.set_location((player._cannon.x,player._cannon.y,player._cannon.z))
-							self.send_chat("Artillery enabled! up/down->MOVE, left/right->SELECT BULLETS TYPE. spade->SHOOT!")
-							break
+			if jump==True and player._cannon!=False:
+				player._status=False
+				player._cannon=False					
+				player._timer=False
+				print("jump2")
+				for i in _cannons:
+					if i.status==self.player_id:
+						i.status=False
+						i.update()
+						self.protocol.update_entities()					
+						self.send_chat("Artillery disabled")
+			elif crouch==True and player._cannon==False
+				p=self.get_location()	
+				top=None
+				for i in _cannons:
+					if i.status!=False or i.team!=self.team:
+						continue
+					dist=sqrt((pow((i.x)-p[0],2))+(pow((i.y)-p[1],2))+(pow((i.z)-p[2],2)))
+					if dist < _d_e:	
+						if top==None:
+							top={}
+							top[i]=dist
+						else:
+							if dist<top.values()[0]:
+								top={}
+								top[i]=dist
+				if top!=None:
+					player._status=(top.keys()[0].id)
+					player._cannon=(top.keys()[0])
+					top.keys()[0].status=self.player_id
+					self.protocol.update_entities()
+					self.set_location((player._cannon.x,player._cannon.y,player._cannon.z))
+					self.send_chat("Artillery enabled! up/down->MOVE, left/right->SELECT BULLETS TYPE. spade->SHOOT!")	
 			return connection.on_animation_update(self, jump, crouch, sneak, sprint)
 			
 		def on_position_update(self): #if hold down up or right can move
@@ -288,7 +295,6 @@ def apply_script(protocol,connection,config):
 						self.set_location((Cannon.x,Cannon.y,Cannon.z))
 						return connection.on_position_update(self)
 					
-					
 				elif self.world_object.down:
 					z=(z(start.x+(_dir.x*-1)*_c_s,start.y+(_dir.y*-1),start.z))
 					z=(abs(start.z-z))
@@ -303,8 +309,8 @@ def apply_script(protocol,connection,config):
 						self.protocol.update_entities()
 						Territory.update(_cannons[player._status])
 						return connection.on_position_update(self)
-			self.protocol.update_entities()
-			Territory.update(_cannons[player._status])
+				self.protocol.update_entities()
+				Territory.update(_cannons[player._status])
 			return connection.on_position_update(self)
 
 		def on_walk_update(self, up, down, left, right):#movements and change bullets type	
@@ -363,29 +369,37 @@ def apply_script(protocol,connection,config):
 		
 		def on_shoot_set(self, fire):#shoot with spade
 			#print("on shoot")	
+			print 1
 			player=_play[self.player_id]
-			if player._status==0:
+			if player._cannon==False:
+				print 2,player._status
 				return connection.on_shoot_set(self,fire)
 			elif fire==False:
+				print 3
 				return connection.on_shoot_set(self,fire)
 			elif self.tool!=0:
+				print 4
 				self.send_chat("Use spade to shoot!")
 				return connection.on_shoot_set(self,fire)
 			shoot=reactor.seconds()		
 			bullet=player._bullets[0]
 			if player._timer!=False and shoot-player._timer< bullet._refill:
 				self.send_chat("Wait! refilling is underway: "+(str(bullet._refill-(shoot-player._timer)))[0:3]+"seconds")
+				print 5
 				return connection.on_shoot_set(self,fire)
 			if player._ammo >=bullet._number and _ammo_mode==1:
 				player._ammo-=bullet._number
 				self.send_chat("Munitions: "+str(player._ammo))
+				print 6
 			elif _ammo_mode==2 and _cannons[player].ammo>=bullet._number:
 				_cannons[player]._cannon-=bullet.number
 				self.send_chat("Munition: "+str(_cannons[player]._cannon))
 				Territory.update(_cannons[player._status])
 				self.protocol.update_entities()				
+				print 7
 			else:
 				self.send_chat("Munition finished!")
+				print 8
 				return connection.on_shoot_set(self,fire)
 			player._timer=shoot
 			pos=self.get_location()			
@@ -409,7 +423,7 @@ def apply_script(protocol,connection,config):
 			return connection.on_shoot_set(self,fire)
 		
 	class cannons_protocol(protocol):#place the artillery/control point
-		game_mode = TC_MODE	
+		game_mode = TC_MODE
 		def get_cp_entities(self):
 			#print("get cp entities")
 			if _a_p==0:#user defined
@@ -422,7 +436,7 @@ def apply_script(protocol,connection,config):
 					self.cp.ammo=_cannon_ammo
 					self.cp.status=False
 					_cannons.append(entity)
-			elif _a_p == 1:#random
+			elif _a_p >= 1:#random
 				for i in range(_a_p):
 					x=randint(0,512)
 					y=randint(0,512)
@@ -443,8 +457,8 @@ def apply_script(protocol,connection,config):
 			return protocol.get_cp_entities(self)
 		
 		def on_cp_capture(self,cp):
-			#print("on capture")
-			self.send_chat("Jump to enable artillery mode!")
+			print("on capture")
+			print(cp.id)
 			return protocol.on_cp_capture(self,cp)
 
 		def on_game_end(self):
