@@ -53,7 +53,7 @@ _player_ammo=_p_a=25#number of bullets available for each player if _ammo_mode=1
 _cannon_ammo=_c_a=100#number of bullets available for each artillery battery if _ammo_mode=2
 _cannons_step=_c_s=0.25 #speed of cannons, set 0 to not mobile artillery
 _artillery_step_height=_h_s_h=1.5#how much block can get over
-_distance_enabled=_d_e=10
+_distance_enabled=_d_e=10#minimum distance to enable artillery
 
 #cannonball settings
 CANNONBALL_NUMBER=C_N=1 #number of shooted bullets for this type i suggest only 1
@@ -234,21 +234,20 @@ def apply_script(protocol,connection,config):
 					self.protocol.update_entities()
 			return connection.on_reset(self)
 
-		def on_animation_update(self, jump, crouch, sneak, sprint): #on jump enter in a artillery battery if captured
+		def on_animation_update(self, jump, crouch, sneak, sprint): 
 			#print("on animation update")
 			player=_play[self.player_id]
-			if jump==True and player._cannon!=False:
+			if jump==True and player._cannon!=False:#on JUMP EXIT artillery battery
 				player._status=False
 				player._cannon=False					
 				player._timer=False
-				print("jump2")
 				for i in _cannons:
 					if i.status==self.player_id:
 						i.status=False
 						i.update()
 						self.protocol.update_entities()					
 						self.send_chat("Artillery disabled")
-			elif crouch==True and player._cannon==False
+			elif crouch==True and player._cannon==False:#on CROUCH ENTER in a artillery battery if captured
 				p=self.get_location()	
 				top=None
 				for i in _cannons:
@@ -369,37 +368,29 @@ def apply_script(protocol,connection,config):
 		
 		def on_shoot_set(self, fire):#shoot with spade
 			#print("on shoot")	
-			print 1
 			player=_play[self.player_id]
 			if player._cannon==False:
-				print 2,player._status
 				return connection.on_shoot_set(self,fire)
 			elif fire==False:
-				print 3
 				return connection.on_shoot_set(self,fire)
 			elif self.tool!=0:
-				print 4
 				self.send_chat("Use spade to shoot!")
 				return connection.on_shoot_set(self,fire)
 			shoot=reactor.seconds()		
 			bullet=player._bullets[0]
 			if player._timer!=False and shoot-player._timer< bullet._refill:
 				self.send_chat("Wait! refilling is underway: "+(str(bullet._refill-(shoot-player._timer)))[0:3]+"seconds")
-				print 5
 				return connection.on_shoot_set(self,fire)
 			if player._ammo >=bullet._number and _ammo_mode==1:
 				player._ammo-=bullet._number
 				self.send_chat("Munitions: "+str(player._ammo))
-				print 6
 			elif _ammo_mode==2 and _cannons[player].ammo>=bullet._number:
 				_cannons[player]._cannon-=bullet.number
 				self.send_chat("Munition: "+str(_cannons[player]._cannon))
 				Territory.update(_cannons[player._status])
-				self.protocol.update_entities()				
-				print 7
+				self.protocol.update_entities()
 			else:
 				self.send_chat("Munition finished!")
-				print 8
 				return connection.on_shoot_set(self,fire)
 			player._timer=shoot
 			pos=self.get_location()			
