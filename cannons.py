@@ -42,18 +42,18 @@ class _bullets:#class of bullets
 		print("_bullets",self._name,self._number,self._speed,_refill,_eta,_kinetic)
 		
 _cannons = []
-_artillery_positions=_a_p=8#if>=1 control point are in random position and in give number,0=fixes(declare in _cannon_location) 
+_artillery_positions=_a_p=32#if>=1 control point are in random position and in give number,0=fixes(declare in _cannon_location) 
 _cannons_locations=((10,10,20),(25,26,20),(30,30,20),(462,463,20),(500,500,20),(510,510,20))#list of artillery locations 
 
 #artillery golbal settings
-_ammo_mode=1#0=infinite ammo, 1=player ammo, 2=artillery ammo
+_ammo_mode=2#0=infinite ammo, 1=player ammo, 2=artillery ammo
 _bullets_types=[0,1,2,3] #available types of bullets: 0 = cannonball,2 = buster,1 = cluster, 3 = missile
 _persistent_players_ammo=_p_p_a=False #if True, if a plyer die, his ammunition are not 
 _player_ammo=_p_a=25#number of bullets available for each player if _ammo_mode=1
 _cannon_ammo=_c_a=100#number of bullets available for each artillery battery if _ammo_mode=2
 _cannons_step=_c_s=0.25 #speed of cannons, set 0 to not mobile artillery
 _artillery_step_height=_h_s_h=1.5#how much block can get over
-_distance_enabled=_d_e=10#minimum distance to enable artillery
+_distance_enabled=_d_e=10
 
 #cannonball settings
 CANNONBALL_NUMBER=C_N=1 #number of shooted bullets for this type i suggest only 1
@@ -384,9 +384,9 @@ def apply_script(protocol,connection,config):
 			if player._ammo >=bullet._number and _ammo_mode==1:
 				player._ammo-=bullet._number
 				self.send_chat("Munitions: "+str(player._ammo))
-			elif _ammo_mode==2 and _cannons[player].ammo>=bullet._number:
-				_cannons[player]._cannon-=bullet.number
-				self.send_chat("Munition: "+str(_cannons[player]._cannon))
+			elif _ammo_mode==2 and _cannons[player._status].ammo>=bullet._number:
+				_cannons[player._status].ammo-=bullet._number
+				self.send_chat("Munition: "+str(_cannons[player._status].ammo))
 				Territory.update(_cannons[player._status])
 				self.protocol.update_entities()
 			else:
@@ -448,8 +448,7 @@ def apply_script(protocol,connection,config):
 			return protocol.get_cp_entities(self)
 		
 		def on_cp_capture(self,cp):
-			print("on capture")
-			print(cp.id)
+			#print("on capture")
 			return protocol.on_cp_capture(self,cp)
 
 		def on_game_end(self):
